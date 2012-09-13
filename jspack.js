@@ -1,5 +1,5 @@
 /*!
- *  Copyright © 2008 Fair Oaks Labs, Inc.
+ *  Copyright ï¿½ 2008 Fair Oaks Labs, Inc.
  *  All rights reserved.
  */
 
@@ -54,6 +54,13 @@ function JSPack()
 	m._EnString = function (a, p, l, v)
 	{
 		for (var t, i = 0; i < l; a[p+i] = (t=v.charCodeAt(i))?t:0, i++);
+	};
+
+	// ASCII character strings null terminated
+	m._DeNullString = function (a, p, l, v)
+	{
+		var str = m._DeString(a, p, l, v);
+		return str.substring(0, str.length - 1);
 	};
 
 	// Little-endian N-bit IEEE 754 floating point
@@ -132,10 +139,11 @@ function JSPack()
 
 
 	// Class data
-	m._sPattern	= '(\\d+)?([AxcbBhHsfdiIlL])';
-	m._lenLut	= {'A':1, 'x':1, 'c':1, 'b':1, 'B':1, 'h':2, 'H':2, 's':1, 'f':4, 'd':8, 'i':4, 'I':4, 'l':4, 'L':4};
+	m._sPattern	= '(\\d+)?([AxcbBhHsSfdiIlL])';
+	m._lenLut	= {'A':1, 'x':1, 'c':1, 'b':1, 'B':1, 'h':2, 'H':2, 's':1, 'S': 1, 'f':4, 'd':8, 'i':4, 'I':4, 'l':4, 'L':4};
 	m._elLut	= {	'A': {en:m._EnArray, de:m._DeArray},
 				's': {en:m._EnString, de:m._DeString},
+				'S': {en:m._EnString, de:m._DeNullString},
 				'c': {en:m._EnChar, de:m._DeChar},
 				'b': {en:m._EnInt, de:m._DeInt, len:1, bSigned:true, min:-Math.pow(2, 7), max:Math.pow(2, 7)-1},
 				'B': {en:m._EnInt, de:m._DeInt, len:1, bSigned:false, min:0, max:Math.pow(2, 8)-1},
@@ -172,6 +180,12 @@ function JSPack()
 		while (m = re.exec(fmt))
 		{
 			n = ((m[1]==undefined)||(m[1]==''))?1:parseInt(m[1]);
+
+			if(m[2] === 'S') { // Null term string support
+				while(a[p + n] !== 0) { n++; }
+				n++; // Add one for null byte				
+			}
+
 			s = this._lenLut[m[2]];
 			if ((p + n*s) > a.length)
 			{
@@ -179,7 +193,7 @@ function JSPack()
 			}
 			switch (m[2])
 			{
-				case 'A': case 's':
+				case 'A': case 's': case 'S':
 					rv.push(this._elLut[m[2]].de(a, p, n));
 					break;
 				case 'c': case 'b': case 'B': case 'h': case 'H':
@@ -203,14 +217,20 @@ function JSPack()
 		while (m = re.exec(fmt))
 		{
 			n = ((m[1]==undefined)||(m[1]==''))?1:parseInt(m[1]);
+
+			if(m[2] === 'S') { // Null term string support
+				n = values[i].length + 1; // Add one for null byte
+			}
+
 			s = this._lenLut[m[2]];
+
 			if ((p + n*s) > a.length)
 			{
 				return false;
 			}
 			switch (m[2])
 			{
-				case 'A': case 's':
+				case 'A': case 's': case 'S':
 					if ((i + 1) > values.length) { return false; }
 					this._elLut[m[2]].en(a, p, n, values[i]);
 					i += 1;
