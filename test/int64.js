@@ -1,5 +1,5 @@
 var should = require('should');
-var jspack = require('../jspack.js').jspack;
+var jspack = require('../jspack.js');
 var Long = require('long');
 
 describe('Test long integration (examples):', function () {
