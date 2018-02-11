@@ -165,7 +165,7 @@ function JSPack() {
   };
 
   // Class data
-  m._sPattern = '(\\d + )?([AxcbBhHsfdiIlLqQ])';
+  m._sPattern = new RegExp('(\\d + )?([AxcbBhHsfdiIlLqQ])', 'g');
   m._lenLut = {'A': 1, 'x': 1, 'c': 1, 'b': 1, 'B': 1, 'h': 2, 'H': 2, 's': 1,
     'f': 4, 'd': 8, 'i': 4, 'I': 4, 'l': 4, 'L': 4, 'q': 8, 'Q': 8
   };
@@ -202,7 +202,7 @@ function JSPack() {
     bBE = (fmt.charAt(0) != '<');
 
     p = p ? p : 0;
-    var re = new RegExp(this._sPattern, 'g');
+    var re = this._sPattern;
     var m, n, s;
     var rv = [];
     while (m = re.exec(fmt)) {
@@ -234,7 +234,7 @@ function JSPack() {
     // Set the private bBE flag based on the format string - assume big-endianness
     bBE = (fmt.charAt(0) != '<');
 
-    var re = new RegExp(this._sPattern, 'g');
+    var re = this._sPattern;
     var m, n, s, j;
     var i = 0;
     while (m = re.exec(fmt)) {
@@ -272,7 +272,7 @@ function JSPack() {
 
   // Determine the number of bytes represented by the format string
   m.CalcLength = function (fmt) {
-    var re = new RegExp(this._sPattern, 'g');
+    var re = this._sPattern;
     var sum = 0;
     var m;
     while (m = re.exec(fmt)) {
