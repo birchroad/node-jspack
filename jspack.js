@@ -165,7 +165,7 @@ function JSPack() {
   };
 
   // Class data
-  m._sPattern = '(\\d + )?([AxcbBhHsfdiIlLqQ])';
+  m._sPattern = '(\\d+)?([AxcbBhHsfdiIlLqQ])';
   m._lenLut = {'A': 1, 'x': 1, 'c': 1, 'b': 1, 'B': 1, 'h': 2, 'H': 2, 's': 1,
     'f': 4, 'd': 8, 'i': 4, 'I': 4, 'l': 4, 'L': 4, 'q': 8, 'Q': 8
   };
