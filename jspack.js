@@ -165,7 +165,7 @@ function JSPack() {
   };
 
   // Class data
-  m._sPattern = '(\\d + )?([AxcbBhHsfdiIlLqQ])';
+  m._sPattern = '(\\d+)?([AxcbBhHsfdiIlLqQ])';
   m._lenLut = {'A': 1, 'x': 1, 'c': 1, 'b': 1, 'B': 1, 'h': 2, 'H': 2, 's': 1,
     'f': 4, 'd': 8, 'i': 4, 'I': 4, 'l': 4, 'L': 4, 'q': 8, 'Q': 8
   };
@@ -197,7 +197,7 @@ function JSPack() {
   };
 
   // Unpack the octet array a, beginning at offset p, according to the fmt string
-  m.Unpack = function (fmt, a, p) {
+  m.UnpackTo = function (fmt, a, p, allowLessData = false) {
     // Set the private bBE flag based on the format string - assume big-endianness
     bBE = (fmt.charAt(0) != '<');
 
@@ -206,22 +206,32 @@ function JSPack() {
     var m, n, s;
     var rv = [];
     while (m = re.exec(fmt)) {
-
       n = ((m[1]  == undefined) || (m[1] == '')) ? 1 : parseInt(m[1]);
       s = this._lenLut[m[2]];
       if ((p + n * s) > a.length) {
-
-        return undefined;
+        if (allowLessData) {
+          // We stop here and return what we have already,
+          // or an empty array if this happens in the first iteration.
+          break;
+        } else {
+          return undefined;
+        }
       }
       switch (m[2]) {
-
         case 'A': case 's':
           rv.push(this._elLut[m[2]].de(a, p, n));
           break;
         case 'c': case 'b': case 'B': case 'h': case 'H':
         case 'i': case 'I': case 'l': case 'L': case 'f': case 'd': case 'q': case 'Q':
           el = this._elLut[m[2]];
-          rv.push(this._UnpackSeries(n, s, a, p));
+          if (n > 1) {
+            // Field is array, unpack into separate array and push as such
+            var arr = [];
+            arr.push(this._UnpackSeries(n, s, a, p));
+            rv.push(arr);
+          } else {
+            rv.push(this._UnpackSeries(n, s, a, p));
+          }
           break;
       }
       p += n * s;
@@ -230,7 +240,7 @@ function JSPack() {
   };
 
   // Pack the supplied values into the octet array a, beginning at offset p, according to the fmt string
-  m.PackTo = function (fmt, a, p, values) {
+  m.PackTo = function (fmt, a, p, values, allowLessData) {
     // Set the private bBE flag based on the format string - assume big-endianness
     bBE = (fmt.charAt(0) != '<');
 
@@ -241,20 +251,28 @@ function JSPack() {
       n = ((m[1] == undefined) || (m[1] == '')) ? 1 : parseInt(m[1]);
       s = this._lenLut[m[2]];
       if ((p + n * s) > a.length) {
+        // this should not happen unless CalcLength() is broken
         return false;
       }
       switch (m[2]) {
         case 'A': case 's':
-          if ((i + 1) > values.length) { return false; }
+          if ((i + 1) > values.length) { return allowLessData ? a.slice(0, p) : false; }
           this._elLut[m[2]].en(a, p, n, values[i]);
           i += 1;
           break;
         case 'c': case 'b': case 'B': case 'h': case 'H':
         case 'i': case 'I': case 'l': case 'L': case 'f': case 'd': case 'q': case 'Q':
           el = this._elLut[m[2]];
-          if ((i + n) > values.length) { return false; }
-          this._PackSeries(n, s, a, p, values, i);
-          i += n;
+          if (n > 1 && Array.isArray(values[i])) {
+            // Value series is array, iterate through that, only increment by 1
+            if ((i + 1) > values.length) { return allowLessData ? a.slice(0, p) : false; }
+            this._PackSeries(n, s, a, p, values[i], 0);
+            i += 1;
+          } else {
+            if ((i + n) > values.length) { return allowLessData ? a.slice(0, p) : false; }
+            this._PackSeries(n, s, a, p, values, i);
+            i += n;
+          }
           break;
         case 'x':
           for (j = 0; j < n; j++) { a[p + j] = 0; }
@@ -266,8 +284,12 @@ function JSPack() {
   };
 
   // Pack the supplied values into a new octet array, according to the fmt string
-  m.Pack = function (fmt, values) {
-    return this.PackTo(fmt, new Array(this.CalcLength(fmt)), 0, values);
+  m.Pack = function (fmt, values, allowLessData = false) {
+    return this.PackTo(fmt, new Array(this.CalcLength(fmt)), 0, values, allowLessData);
+  };
+
+  m.Unpack = function (fmt, values, allowLessData = false) {
+    return this.UnpackTo(fmt, values, 0, allowLessData);
   };
 
   // Determine the number of bytes represented by the format string

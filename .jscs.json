@@ -1,8 +1,0 @@
-{
-    "preset": "grunt",
-    "requireSpacesInAnonymousFunctionExpression": {
-        "beforeOpeningRoundBrace": true,
-        "beforeOpeningCurlyBrace": true
-    },
-    "disallowSpacesInAnonymousFunctionExpression": null
-  }
